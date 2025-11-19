@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Rolling Ball</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        #controls h2 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .button-group {
+            margin-bottom: 15px;
+        }
+
+        .button-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        button {
+            padding: 10px 20px;
+            margin: 5px 5px 5px 0;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #startBtn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #startBtn:hover {
+            background-color: #45a049;
+        }
+
+        #stopBtn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        #stopBtn:hover {
+            background-color: #da190b;
+        }
+
+        #accelerateBtn {
+            background-color: #2196F3;
+            color: white;
+            font-weight: bold;
+        }
+
+        #accelerateBtn:hover {
+            background-color: #0b7dda;
+        }
+
+        #decelerateBtn {
+            background-color: #FF9800;
+            color: white;
+            font-weight: bold;
+        }
+
+        #decelerateBtn:hover {
+            background-color: #e68900;
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        #speedDisplay {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="controls">
+        <h2>Ball Controls</h2>
+
+        <div class="button-group">
+            <label>Movement:</label>
+            <button id="startBtn">Start Roll</button>
+            <button id="stopBtn">Stop</button>
+        </div>
+
+        <div class="button-group">
+            <label>Speed:</label>
+            <button id="accelerateBtn">+ Accelerate</button>
+            <button id="decelerateBtn">- Decelerate</button>
+        </div>
+
+        <div id="speedDisplay">
+            Speed: 0.00
+        </div>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+</body>
+</html>
