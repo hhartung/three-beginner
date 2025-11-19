@@ -99,7 +99,9 @@ const ballState = {
     isRolling: false,
     direction: new THREE.Vector3(1, 0, 0), // Initial direction
     rotation: new THREE.Euler(0, 0, 0),
-    angularVelocity: new THREE.Vector3(0, 0, 0)
+    angularVelocity: new THREE.Vector3(0, 0, 0),
+    targetPosition: null, // Target position for click-to-move
+    hasTarget: false
 };
 
 // Constants
@@ -108,6 +110,12 @@ const DECELERATION = 0.03;
 const MAX_SPEED = 0.5;
 const MIN_SPEED = 0;
 const FRICTION = 0.98;
+const TARGET_SPEED = 0.3; // Speed when rolling to target
+const TARGET_THRESHOLD = 0.1; // Distance threshold to consider target reached
+
+// Raycaster for mouse interaction
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
 // Ball control functions
 function startRoll() {
@@ -119,6 +127,14 @@ function startRoll() {
 
 function stopRoll() {
     ballState.isRolling = false;
+}
+
+function resetRoll() {
+    ballState.speed = 0;
+    ballState.isRolling = false;
+    ball.position.set(0, ballRadius, 0);
+    ball.rotation.set(0, 0, 0);
+    ballState.direction.set(1, 0, 0);
 }
 
 function accelerate() {
@@ -137,6 +153,45 @@ function decelerate() {
 
 // Update ball physics
 function updateBall(deltaTime) {
+    // Handle click-to-move behavior
+    if (ballState.hasTarget && ballState.targetPosition) {
+        const currentPos = new THREE.Vector2(ball.position.x, ball.position.z);
+        const targetPos = new THREE.Vector2(ballState.targetPosition.x, ballState.targetPosition.z);
+        const distance = currentPos.distanceTo(targetPos);
+
+        // Check if we've reached the target
+        if (distance < TARGET_THRESHOLD) {
+            // Snap to exact position and stop
+            ball.position.x = ballState.targetPosition.x;
+            ball.position.z = ballState.targetPosition.z;
+            ballState.hasTarget = false;
+            ballState.isRolling = false;
+            ballState.speed = 0;
+            ballState.velocity.set(0, 0, 0);
+        } else {
+            // Calculate direction to target
+            const directionToTarget = new THREE.Vector3(
+                ballState.targetPosition.x - ball.position.x,
+                0,
+                ballState.targetPosition.z - ball.position.z
+            ).normalize();
+
+            // Update direction and ensure ball is rolling
+            ballState.direction.copy(directionToTarget);
+            ballState.isRolling = true;
+
+            // Slow down as we approach the target to prevent overshooting
+            const slowdownDistance = 1.0; // Start slowing down at this distance
+            if (distance < slowdownDistance) {
+                ballState.speed = TARGET_SPEED * (distance / slowdownDistance);
+                // Ensure minimum speed so it doesn't get stuck
+                ballState.speed = Math.max(ballState.speed, 0.05);
+            } else {
+                ballState.speed = TARGET_SPEED;
+            }
+        }
+    }
+
     if (ballState.isRolling && ballState.speed > 0) {
         // Calculate velocity based on direction and speed
         ballState.velocity.copy(ballState.direction).multiplyScalar(ballState.speed);
@@ -161,12 +216,16 @@ function updateBall(deltaTime) {
         if (Math.abs(ball.position.x) > boundary) {
             ball.position.x = Math.sign(ball.position.x) * boundary;
             ballState.direction.x *= -1;
+            // Cancel target if we hit boundary
+            ballState.hasTarget = false;
         }
         if (Math.abs(ball.position.z) > boundary) {
             ball.position.z = Math.sign(ball.position.z) * boundary;
             ballState.direction.z *= -1;
+            // Cancel target if we hit boundary
+            ballState.hasTarget = false;
         }
-    } else if (!ballState.isRolling) {
+    } else if (!ballState.isRolling && !ballState.hasTarget) {
         // Apply friction when not actively rolling
         ballState.speed *= FRICTION;
         if (ballState.speed < 0.001) {
@@ -185,11 +244,41 @@ function updateSpeedDisplay() {
     speedDisplay.textContent = `Speed: ${ballState.speed.toFixed(2)}`;
 }
 
+// Click-to-move: Convert mouse click to 3D position and set as target
+function onCanvasClick(event) {
+    // Calculate mouse position in normalized device coordinates (-1 to +1)
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    // Cast ray from camera through mouse position
+    raycaster.setFromCamera(mouse, camera);
+
+    // Check intersection with ground plane
+    const intersects = raycaster.intersectObject(ground);
+
+    if (intersects.length > 0) {
+        const intersectionPoint = intersects[0].point;
+
+        // Set the target position (keep y at ball radius to stay on ground)
+        ballState.targetPosition = new THREE.Vector3(
+            intersectionPoint.x,
+            ballRadius,
+            intersectionPoint.z
+        );
+        ballState.hasTarget = true;
+    }
+}
+
 // Button event listeners
 document.getElementById('startBtn').addEventListener('click', startRoll);
 document.getElementById('stopBtn').addEventListener('click', stopRoll);
+document.getElementById('resetBtn').addEventListener('click', resetRoll);
 document.getElementById('accelerateBtn').addEventListener('click', accelerate);
 document.getElementById('decelerateBtn').addEventListener('click', decelerate);
+
+// Canvas click listener for click-to-move
+renderer.domElement.addEventListener('click', onCanvasClick);
 
 // Handle window resize
 window.addEventListener('resize', () => {
